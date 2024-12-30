@@ -2,6 +2,7 @@ import { ActivityType, Client, GatewayIntentBits, SlashCommandBuilder } from "di
 import { config } from "./config";
 
 import { fetchGasPrice } from "./services/sepolia.services";
+import { convertGweiToUSD } from "./services/coingecko.services";
 
 const client = new Client({
 	intents: [GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
@@ -13,10 +14,7 @@ client.once("ready", () => {
 	setInterval(async () => {
 		const gasPrice = await fetchGasPrice();
 
-		const gasPriceInWei = parseInt(gasPrice, 16);
-		const gasPriceInGwei = gasPriceInWei / 1e9;
-
-		client.user?.setActivity(`⛽${gasPriceInGwei.toFixed(1)}`, { type: ActivityType.Watching });
+		client.user?.setActivity(`⛽${gasPrice.toFixed(1)}`, { type: ActivityType.Watching });
 	}, 30000);
 });
 
@@ -26,10 +24,9 @@ client.on("interactionCreate", async (interaction) => {
 	if (interaction.commandName === "gas") {
 		const gasPrice = await fetchGasPrice();
 
-		const gasPriceInWei = parseInt(gasPrice, 16);
-		const gasPriceInGwei = gasPriceInWei / 1e9;
+		const usdAmount = (await convertGweiToUSD(gasPrice)) || 0;
 
-		await interaction.reply(`⛽ Current gas price: ${gasPriceInGwei.toFixed(1)} Gwei`);
+		await interaction.reply(`⛽ Current gas price: ${gasPrice.toFixed(1)} Gwei | **$${usdAmount.toFixed(8)} USD**`);
 	}
 });
 
